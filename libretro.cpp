@@ -1,5 +1,5 @@
 /*
- *  Modelviewer Tech demo
+ *  Modelviewer GPS Tech demo
  *  Copyright (C) 2013 - Hans-Kristian Arntzen
  *  Copyright (C) 2013 - Daniel De Matteis
  *
@@ -42,7 +42,15 @@ using namespace std1;
 static unsigned width = BASE_WIDTH;
 static unsigned height = BASE_HEIGHT;
 
+struct retro_location_callback location_cb;
+static retro_video_refresh_t video_cb;
+static retro_audio_sample_t audio_cb;
+static retro_audio_sample_batch_t audio_batch_cb;
+static retro_environment_t environ_cb;
+static retro_input_poll_t input_poll_cb;
+static retro_input_state_t input_state_cb;
 static struct retro_hw_render_callback hw_render;
+
 static bool discard_hack_enable;
 static string mesh_path;
 
@@ -51,10 +59,17 @@ static std1::shared_ptr<Texture> blank;
 
 void retro_init(void)
 {
+   environ_cb(RETRO_ENVIRONMENT_GET_LOCATION_INTERFACE, &location_cb);
+
+   if (location_cb.start)
+      location_cb.start();
 }
 
 void retro_deinit(void)
-{}
+{
+   if (location_cb.stop)
+      location_cb.stop();
+}
 
 unsigned retro_api_version(void)
 {
@@ -85,12 +100,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_height  = MAX_HEIGHT;
 }
 
-static retro_video_refresh_t video_cb;
-static retro_audio_sample_t audio_cb;
-static retro_audio_sample_batch_t audio_batch_cb;
-static retro_environment_t environ_cb;
-static retro_input_poll_t input_poll_cb;
-static retro_input_state_t input_state_cb;
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -256,6 +265,22 @@ void retro_run(void)
    bool updated = false;
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
       update_variables();
+
+   double lat, lon, h_accuracy, v_accuracy;
+   bool new_position = false;
+   if (location_cb.get_position)
+      new_position = location_cb.get_position(&lat, &lon, &h_accuracy, &v_accuracy);
+
+   if (new_position)
+   {
+      struct retro_message msg; 
+      char msg_local[512];
+      snprintf(msg_local, sizeof(msg_local), "New location: lat %f lon %f hacc %f vacc %f", lat, lon, h_accuracy, v_accuracy);
+      msg.msg = msg_local;
+      msg.frames = 180;
+      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+   }
+
 
    GLuint fb = hw_render.get_current_framebuffer();
    SYM(glBindFramebuffer)(GL_FRAMEBUFFER, fb);
