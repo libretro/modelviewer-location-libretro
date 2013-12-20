@@ -57,18 +57,25 @@ static string mesh_path;
 static vector<std1::shared_ptr<Mesh> > meshes;
 static std1::shared_ptr<Texture> blank;
 
+static void location_initialized(void)
+{
+   location_cb.start();
+}
+
+static void location_deinitialized(void)
+{
+   location_cb.stop();
+}
+
 void retro_init(void)
 {
+   location_cb.initialized = location_initialized;
+   location_cb.deinitialized = location_deinitialized;
    environ_cb(RETRO_ENVIRONMENT_GET_LOCATION_INTERFACE, &location_cb);
-
-   if (location_cb.start)
-      location_cb.start();
 }
 
 void retro_deinit(void)
 {
-   if (location_cb.stop)
-      location_cb.stop();
 }
 
 unsigned retro_api_version(void)
