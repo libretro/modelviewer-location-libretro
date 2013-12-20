@@ -12,7 +12,7 @@ else ifneq ($(findstring win,$(shell uname -a)),)
 endif
 endif
 
-TARGET_NAME := modelviewer
+TARGET_NAME := modelviewer_location
 
 ifneq (,$(findstring unix,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
