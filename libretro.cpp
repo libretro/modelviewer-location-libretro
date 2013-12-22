@@ -52,6 +52,7 @@ static retro_input_state_t input_state_cb;
 static struct retro_hw_render_callback hw_render;
 
 static bool discard_hack_enable;
+static bool display_position;
 static string mesh_path;
 
 static vector<std1::shared_ptr<Mesh> > meshes;
@@ -147,6 +148,7 @@ void retro_set_environment(retro_environment_t cb)
          "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600" },
 #endif
                   { "modelviewer_discard_hack", "Discard hack enable; disabled|enabled" },
+                  { "modelviewer_location_display_position", "Display position; disabled|enabled" },
       { NULL, NULL },
    };
 
@@ -262,6 +264,17 @@ static void update_variables()
          discard_hack_enable = false;
       else if (strcmp(var.value, "enabled") == 0)
          discard_hack_enable = true;
+   }
+
+   var.key = "modelviewer_location_display_position";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      if (strcmp(var.value, "disabled") == 0)
+         display_position = false;
+      else if (strcmp(var.value, "enabled") == 0)
+         display_position = true;
    }
 }
 
@@ -379,6 +392,25 @@ static void init_mesh(const string& path)
    }
 }
 
+enum {
+   MODEL_GIRL = 0,
+   MODEL_BUILDING = 1
+};
+
+static unsigned model_type = MODEL_GIRL;
+
+static bool float_lesser_than(float current, float limit)
+{
+   bool lesser_than = (current - limit < DBL_EPSILON) && (fabs(current - limit) > DBL_EPSILON);
+   return lesser_than;
+}
+
+static bool float_greater_than(float current, float limit)
+{
+   bool greater_than = (current - limit > DBL_EPSILON) && (fabs(current - limit) > DBL_EPSILON);
+   return greater_than;
+}
+
 void retro_run(void)
 {
    handle_input();
@@ -388,45 +420,55 @@ void retro_run(void)
       update_variables();
 
    double lat, lon, h_accuracy, v_accuracy;
+   float lat_float, lon_float;
    bool new_position = false;
    if (location_cb.get_position)
       new_position = location_cb.get_position(&lat, &lon, &h_accuracy, &v_accuracy);
 
-   if (new_position)
+   lat_float = lat;
+   lon_float = lon;
+   (void)new_position;
+
+   if (new_position && display_position)
    {
       struct retro_message msg; 
       char msg_local[512];
-      snprintf(msg_local, sizeof(msg_local), "LAT %f LON %f HACC %f VACC %f", lat, lon, h_accuracy, v_accuracy);
+      snprintf(msg_local, sizeof(msg_local), "LAT %f LON %f HACC %f VACC %f", lat_float, lon_float, h_accuracy, v_accuracy);
       msg.msg = msg_local;
       msg.frames = 180;
       environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
    }
 
 #if 0
-   static retro_run_cnt = 0;
-   retro_run_cnt++;
-   if (retro_run_cnt == 120)
    {
-      meshes.clear();
-   }
+      if (float_lesser_than(lon_float, 5.707785) && float_greater_than(lon_float, 5.707750)
+            && model_type == MODEL_GIRL)
+      {
+         model_type = MODEL_BUILDING;
+         meshes.clear();
+         init_mesh("/storage/emulated/0/models/REDC - Police station - by fullmoon and Decan/policestation.obj");
+         struct retro_message msg; 
+         char msg_local[512];
+         snprintf(msg_local, sizeof(msg_local), "Trigger building!\n");
+         msg.msg = msg_local;
+         msg.frames = 180;
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+      }
 
-   if (retro_run_cnt == 256)
-   {
-      meshes.clear();
-      init_mesh("/home/squarepusher/roms/models/REDC - Police station - by fullmoon and Decan/policestation.obj");
-   }
-
-   if (retro_run_cnt == 512)
-   {
-      meshes.clear();
-      init_mesh("/home/squarepusher/roms/models/Tekken DR - Amnesia fields/Fields .obj");
-   }
-
-   if (retro_run_cnt == 768)
-   {
-      meshes.clear();
-      init_mesh(mesh_path);
-      retro_run_cnt = 0;
+      if (float_greater_than(lon_float, 5.707790) && float_lesser_than(lon_float, 5.707820)
+            && model_type == MODEL_BUILDING)
+      {
+         model_type = MODEL_GIRL;
+         meshes.clear();
+         init_mesh(mesh_path);
+         init_mesh("/storage/emulated/0/models/Vanille-working/vanille_obj.obj");
+         struct retro_message msg; 
+         char msg_local[512];
+         snprintf(msg_local, sizeof(msg_local), "Trigger girl!\n");
+         msg.msg = msg_local;
+         msg.frames = 180;
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+      }
    }
 #endif
 
