@@ -396,7 +396,7 @@ void retro_run(void)
    {
       struct retro_message msg; 
       char msg_local[512];
-      snprintf(msg_local, sizeof(msg_local), "New location: lat %f lon %f hacc %f vacc %f", lat, lon, h_accuracy, v_accuracy);
+      snprintf(msg_local, sizeof(msg_local), "LAT %f LON %f HACC %f VACC %f", lat, lon, h_accuracy, v_accuracy);
       msg.msg = msg_local;
       msg.frames = 180;
       environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
