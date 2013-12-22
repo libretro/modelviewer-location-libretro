@@ -265,51 +265,6 @@ static void update_variables()
    }
 }
 
-void retro_run(void)
-{
-   handle_input();
-
-   bool updated = false;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-      update_variables();
-
-   double lat, lon, h_accuracy, v_accuracy;
-   bool new_position = false;
-   if (location_cb.get_position)
-      new_position = location_cb.get_position(&lat, &lon, &h_accuracy, &v_accuracy);
-
-   if (new_position)
-   {
-      struct retro_message msg; 
-      char msg_local[512];
-      snprintf(msg_local, sizeof(msg_local), "New location: lat %f lon %f hacc %f vacc %f", lat, lon, h_accuracy, v_accuracy);
-      msg.msg = msg_local;
-      msg.frames = 180;
-      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
-   }
-
-
-   GLuint fb = hw_render.get_current_framebuffer();
-   SYM(glBindFramebuffer)(GL_FRAMEBUFFER, fb);
-   SYM(glViewport)(0, 0, width, height);
-   SYM(glClearColor)(0.2f, 0.2f, 0.2f, 1.0f);
-   SYM(glClear)(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-   SYM(glEnable)(GL_DEPTH_TEST);
-   SYM(glFrontFace)(GL_CW); // When we flip vertically, orientation changes.
-   SYM(glEnable)(GL_CULL_FACE);
-   SYM(glEnable)(GL_BLEND);
-
-   for (unsigned i = 0; i < meshes.size(); i++)
-      meshes[i]->render();
-
-   SYM(glDisable)(GL_BLEND);
-   SYM(glDisable)(GL_DEPTH_TEST);
-   SYM(glDisable)(GL_CULL_FACE);
-
-   video_cb(RETRO_HW_FRAME_BUFFER_VALID, width, height, 0);
-}
-
 static void init_mesh(const string& path)
 {
    retro_stderr("Loading Mesh ...\n");
@@ -423,6 +378,79 @@ static void init_mesh(const string& path)
       meshes[i]->set_blank(blank);
    }
 }
+
+void retro_run(void)
+{
+   handle_input();
+
+   bool updated = false;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      update_variables();
+
+   double lat, lon, h_accuracy, v_accuracy;
+   bool new_position = false;
+   if (location_cb.get_position)
+      new_position = location_cb.get_position(&lat, &lon, &h_accuracy, &v_accuracy);
+
+   if (new_position)
+   {
+      struct retro_message msg; 
+      char msg_local[512];
+      snprintf(msg_local, sizeof(msg_local), "New location: lat %f lon %f hacc %f vacc %f", lat, lon, h_accuracy, v_accuracy);
+      msg.msg = msg_local;
+      msg.frames = 180;
+      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void*)&msg);
+   }
+
+#if 0
+   static retro_run_cnt = 0;
+   retro_run_cnt++;
+   if (retro_run_cnt == 120)
+   {
+      meshes.clear();
+   }
+
+   if (retro_run_cnt == 256)
+   {
+      meshes.clear();
+      init_mesh("/home/squarepusher/roms/models/REDC - Police station - by fullmoon and Decan/policestation.obj");
+   }
+
+   if (retro_run_cnt == 512)
+   {
+      meshes.clear();
+      init_mesh("/home/squarepusher/roms/models/Tekken DR - Amnesia fields/Fields .obj");
+   }
+
+   if (retro_run_cnt == 768)
+   {
+      meshes.clear();
+      init_mesh(mesh_path);
+      retro_run_cnt = 0;
+   }
+#endif
+
+   GLuint fb = hw_render.get_current_framebuffer();
+   SYM(glBindFramebuffer)(GL_FRAMEBUFFER, fb);
+   SYM(glViewport)(0, 0, width, height);
+   SYM(glClearColor)(0.2f, 0.2f, 0.2f, 1.0f);
+   SYM(glClear)(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+   SYM(glEnable)(GL_DEPTH_TEST);
+   SYM(glFrontFace)(GL_CW); // When we flip vertically, orientation changes.
+   SYM(glEnable)(GL_CULL_FACE);
+   SYM(glEnable)(GL_BLEND);
+
+   for (unsigned i = 0; i < meshes.size(); i++)
+      meshes[i]->render();
+
+   SYM(glDisable)(GL_BLEND);
+   SYM(glDisable)(GL_DEPTH_TEST);
+   SYM(glDisable)(GL_CULL_FACE);
+
+   video_cb(RETRO_HW_FRAME_BUFFER_VALID, width, height, 0);
+}
+
 
 static void context_reset(void)
 {
