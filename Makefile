@@ -26,7 +26,7 @@ endif
    LIBS := -lz
 else ifneq (,$(findstring osx,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.dylib
-   fpic := -fPIC
+   fpic := -fPIC -mmacosx-version-min=10.6
    SHARED := -dynamiclib
    GL_LIB := -framework OpenGL
    LIBS += -lz
