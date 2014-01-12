@@ -32,7 +32,8 @@ static bool texture_image_load_tga(const char *path,
    FILE *file = fopen(path, "rb");
    if (!file)
    {
-      retro_stderr_print("Failed to open image: %s.\n", path);
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "Failed to open image: %s.\n", path);
       return false;
    }
 
@@ -52,7 +53,8 @@ static bool texture_image_load_tga(const char *path,
 
    if (buffer[2] != 2) // Uncompressed RGB
    {
-      retro_stderr_print("TGA image is not uncompressed RGB.\n");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "TGA image is not uncompressed RGB.\n");
       free(buffer);
       return false;
    }
@@ -64,13 +66,15 @@ static bool texture_image_load_tga(const char *path,
    height = info[2] + ((unsigned)info[3] * 256);
    unsigned bits = info[4];
 
-   retro_stderr_print("Loaded TGA: (%ux%u @ %u bpp)\n", width, height, bits);
+   if (log_cb)
+      log_cb(RETRO_LOG_INFO, "Loaded TGA: (%ux%u @ %u bpp)\n", width, height, bits);
 
    unsigned size = width * height * sizeof(uint32_t);
    data = (uint8_t*)malloc(size);
    if (!data)
    {
-      retro_stderr_print("Failed to allocate TGA pixels.\n");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "Failed to allocate TGA pixels.\n");
       free(buffer);
       return false;
    }
@@ -98,7 +102,8 @@ static bool texture_image_load_tga(const char *path,
    }
    else
    {
-      retro_stderr_print("Bit depth of TGA image is wrong. Only 32-bit and 24-bit supported.\n");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "Bit depth of TGA image is wrong. Only 32-bit and 24-bit supported.\n");
       free(buffer);
       free(data);
       return false;
@@ -164,7 +169,10 @@ namespace GL
             data, width, height);
       }
       else
-         retro_stderr_print("Unrecognized extension: \"%s\"\n", ext.c_str());
+      {
+         if (log_cb)
+            log_cb(RETRO_LOG_ERROR, "Unrecognized extension: \"%s\"\n", ext.c_str());
+      }
 
       if (ret)
       {
@@ -172,7 +180,10 @@ namespace GL
          free(data);
       }
       else
-         retro_stderr_print("Failed to load image: %s\n", path.c_str());
+      {
+         if (log_cb)
+            log_cb(RETRO_LOG_ERROR, "Failed to load image: %s\n", path.c_str());
+      }
    }
 
    Texture::~Texture()

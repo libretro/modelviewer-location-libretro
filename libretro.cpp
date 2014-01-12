@@ -42,6 +42,7 @@ using namespace std1;
 static unsigned width = BASE_WIDTH;
 static unsigned height = BASE_HEIGHT;
 
+retro_log_printf_t log_cb;
 struct retro_location_callback location_cb;
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
@@ -70,6 +71,13 @@ static void location_deinitialized(void)
 
 void retro_init(void)
 {
+   struct retro_log_callback log;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
+      log_cb = log.log;
+   else
+      log_cb = NULL;
+
    location_cb.initialized = location_initialized;
    location_cb.deinitialized = location_deinitialized;
    environ_cb(RETRO_ENVIRONMENT_GET_LOCATION_INTERFACE, &location_cb);
