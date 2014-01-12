@@ -116,34 +116,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_height  = MAX_HEIGHT;
 }
 
-
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
-#include <stdarg.h>
-
-void retro_stderr(const char *str)
-{
-#if defined(_WIN32)
-   OutputDebugStringA(str);
-#elif defined(ANDROID)
-   __android_log_print(ANDROID_LOG_INFO, "ModelViewer: ", "%s", str);
-#else
-   fputs(str, stderr);
-#endif
-}
-
-void retro_stderr_print(const char *fmt, ...)
-{
-   char buf[1024];
-   va_list list;
-   va_start(list, fmt);
-   vsprintf(buf, fmt, list); // Unsafe, but vsnprintf isn't in C++03 :(
-   va_end(list);
-   retro_stderr(buf);
-}
-
 void retro_set_environment(retro_environment_t cb)
 {
    environ_cb = cb;
@@ -259,7 +231,8 @@ static void update_variables()
       {
          width = String::stoi(list[0]);
          height = String::stoi(list[1]);
-         retro_stderr_print("Internal resolution: %u x %u\n", width, height);
+         if (log_cb)
+            log_cb(RETRO_LOG_INFO, "Internal resolution: %u x %u\n", width, height);
       }
    }
 
@@ -288,7 +261,8 @@ static void update_variables()
 
 static void init_mesh(const string& path)
 {
-   retro_stderr("Loading Mesh ...\n");
+   if (log_cb)
+      log_cb(RETRO_LOG_INFO, "Loading Mesh ...\n");
 
    static const string vertex_shader =
       "uniform mat4 uModel;\n"
@@ -400,6 +374,7 @@ static void init_mesh(const string& path)
    }
 }
 
+#if 0
 enum {
    MODEL_GIRL = 0,
    MODEL_BUILDING = 1
@@ -418,6 +393,7 @@ static bool float_greater_than(float current, float limit)
    bool greater_than = (current - limit > DBL_EPSILON) && (fabs(current - limit) > DBL_EPSILON);
    return greater_than;
 }
+#endif
 
 void retro_run(void)
 {
@@ -521,7 +497,8 @@ bool retro_load_game(const struct retro_game_info *info)
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
    {
-      retro_stderr("XRGB8888 is not supported.");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "XRGB8888 is not supported.");
       return false;
    }
 
