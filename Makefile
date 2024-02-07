@@ -103,7 +103,11 @@ endif
 else ifneq (,$(findstring win,$(platform)))
    CXX = g++
    TARGET := $(TARGET_NAME)_libretro.dll
-   SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T -Wl,--no-undefined
+   SHARED := -shared -static-libgcc -static-libstdc++
+   ifneq ($(DEBUG), 1)
+   SHARED += -s
+   endif  
+   SHARED += -Wl,--version-script=link.T -Wl,--no-undefined
 ifneq (,$(findstring opengl,$(platform)))
    GL_LIB := -lopengl32
 endif
